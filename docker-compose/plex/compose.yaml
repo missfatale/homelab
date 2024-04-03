@@ -1,0 +1,79 @@
+services:
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - proxy
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - VERSION=${VERSION}
+      - PLEX_CLAIM=${PLEX_CLAIM}
+    volumes:
+      - /srv/docker/volumes/plex:/config
+      - movies:/movies
+      - movies-uhd:/movies
+      - movies-anime:/anime
+      - tvshows:/tvshows
+      - tvshows-uhd:/tvshows
+      - tvshows-anime:/anime
+    ports:
+      - 32400:32400/tcp
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.plex.entrypoints=http"
+      - "traefik.http.routers.plex.rule=Host(`${TRAEFIK_HOST_RULE}`)"
+      - "traefik.http.middlewares.plex-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.portainer.middlewares=plex-https-redirect"
+      - "traefik.http.routers.plex-secure.entrypoints=https"
+      - "traefik.http.routers.plex-secure.rule=Host(`${TRAEFIK_HOST_RULE}`)"
+      - "traefik.http.routers.plex-secure.tls=true"
+      - "traefik.http.routers.plex-secure.service=${SERVICE}"
+      - "traefik.http.services.plex.loadbalancer.server.port=${SERVICE_PORT}"
+      - "traefik.docker.network=proxy"
+
+networks:
+  proxy:
+    external: true
+
+volumes:
+  movies:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${ADDR},rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":${DEVICE_MOUNT_MOVIES}"
+  movies-uhd:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${ADDR},rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":${DEVICE_MOUNT_MOVIES_UHD}"
+  movies-anime:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${ADDR},rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":${DEVICE_MOUNT_MOVIES_ANIME}"
+  tvshows:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${ADDR},rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":${DEVICE_MOUNT_TV_SHOWS}"
+  tvshows-uhd:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${ADDR},rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":${DEVICE_MOUNT_TV_SHOWS_UHD}"
+  tvshows-anime:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${ADDR},rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":${DEVICE_MOUNT_TV_SHOWS_ANIME}"
