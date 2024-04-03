@@ -1,0 +1,32 @@
+services:
+  overseerr:
+    image: sctx/overseerr:latest
+    container_name: overseerr
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - proxy
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - /srv/docker/volumes/overseerr:/app/config
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.overseerr.entrypoints=http"
+      - "traefik.http.routers.overseerr.rule=Host(`${TRAEFIK_HOST_RULE}`)"
+      - "traefik.http.middlewares.overseerr-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.portainer.middlewares=overseerr-https-redirect"
+      - "traefik.http.routers.overseerr-secure.entrypoints=https"
+      - "traefik.http.routers.overseerr-secure.rule=Host(`${TRAEFIK_HOST_RULE}`)"
+      - "traefik.http.routers.overseerr-secure.tls=true"
+      - "traefik.http.routers.overseerr-secure.service=${SERVICE}"
+      - "traefik.http.services.overseerr.loadbalancer.server.port=${SERVICE_PORT}"
+      - "traefik.docker.network=proxy"
+
+      
+networks:
+  proxy:
+    external: true
