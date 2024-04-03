@@ -1,0 +1,47 @@
+services:
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - proxy
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - /srv/docker/volumes/radarr:/config
+      - movies:/movies
+      - downloads:/downloads
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.radarr.entrypoints=http"
+      - "traefik.http.routers.radarr.rule=Host(`${TRAEFIK_HOST_RULE}`)"
+      - "traefik.http.middlewares.radarr-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.radarr.middlewares=radarr-https-redirect"
+      - "traefik.http.routers.radarr-secure.entrypoints=https"
+      - "traefik.http.routers.radarr-secure.rule=Host(`${TRAEFIK_HOST_RULE}`)"
+      - "traefik.http.routers.radarr-secure.tls=true"
+      - "traefik.http.routers.radarr-secure.service=${SERVICE}"
+      - "traefik.http.services.radarr.loadbalancer.server.port=${SERVICE_PORT}"
+      - "traefik.docker.network=proxy"
+
+volumes:
+  movies:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${ADDR},rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":${DEVICE_MOUNT_MOVIES}"
+  downloads:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${ADDR},rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":${DEVICE_MOUNT_DOWNLOADS}"
+
+networks:
+  proxy:
+    external: true
