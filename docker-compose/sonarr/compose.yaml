@@ -1,0 +1,47 @@
+services:
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - proxy
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - /srv/docker/volumes/sonarr:/config
+      - tvshows:/tvshows
+      - downloads:/downloads
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sonarr.entrypoints=http"
+      - "traefik.http.routers.sonarr.rule=Host(`${TRAEFIK_HOST_RULE}`)"
+      - "traefik.http.middlewares.sonarr-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.portainer.middlewares=sonarr-https-redirect"
+      - "traefik.http.routers.sonarr-secure.entrypoints=https"
+      - "traefik.http.routers.sonarr-secure.rule=Host(`${TRAEFIK_HOST_RULE}`)"
+      - "traefik.http.routers.sonarr-secure.tls=true"
+      - "traefik.http.routers.sonarr-secure.service=${SERVICE}"
+      - "traefik.http.services.sonarr.loadbalancer.server.port=${SERVICE_PORT}"
+      - "traefik.docker.network=proxy"
+
+volumes:
+  tvshows:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${ADDR},rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":${DEVICE_MOUNT_TV_SHOWS}"
+  downloads:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${ADDR},rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":${DEVICE_MOUNT_DOWNLOADS}"
+
+networks:
+  proxy:
+    external: true
