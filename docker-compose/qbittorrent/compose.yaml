@@ -1,0 +1,35 @@
+services:
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    network_mode: "container:gluetun"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - /srv/docker/volumes/qbittorrent:/config
+      - downloads:/downloads
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.qbittorrent.entrypoints=http"
+      - "traefik.http.routers.qbittorrent.rule=Host(`${TRAEFIK_HOST_RULE}`)"
+      - "traefik.http.middlewares.qbittorrent-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.portainer.middlewares=qbittorrent-https-redirect"
+      - "traefik.http.routers.qbittorrent-secure.entrypoints=https"
+      - "traefik.http.routers.qbittorrent-secure.rule=Host(`${TRAEFIK_HOST_RULE}`)"
+      - "traefik.http.routers.qbittorrent-secure.tls=true"
+      - "traefik.http.routers.qbittorrent-secure.service=${SERVICE}"
+      - "traefik.http.services.qbittorrent.loadbalancer.server.port=${SERVICE_PORT}"
+      - "traefik.docker.network=proxy"
+
+volumes:
+  downloads:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${ADDR},rw,noatime,rsize=8192,wsize=8192,tcp,timeo=14,nfsvers=4
+      device: ":${DEVICE_MOUNT_DOWNLOADS}"
